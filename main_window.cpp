@@ -221,12 +221,12 @@ void Main_Window::collisionSolving(){
     col.setCaseSensitivity(Qt::CaseInsensitive);
     std::sort(subdirs.begin(), subdirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
 
-    //reset evaluation statistics
-    state.eval.correct_ids = 0.0;
-    state.eval.wrong_ids = 0.0;
-    state.eval.sum_ids = 0.0;
-
     for(QString& subdir_name : subdirs){
+        //reset evaluation statistics
+        state.eval.correct_ids = 0.0;
+        state.eval.wrong_ids = 0.0;
+        state.eval.sum_ids = 0.0;
+
         state.eval.current_results_dir=state.io.output_dir+"/"+subdir_name;
         //check if subdir contains collisions
         QDir subdir(state.io.coll_dir+"/"+subdir_name);
@@ -235,7 +235,6 @@ void Main_Window::collisionSolving(){
         std::sort(collision_dirs.begin(), collision_dirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
 
         for(size_t idx=0; idx<(size_t)collision_dirs.size(); idx++){
-
             state.eval.timer.restart();
 
             QString& collision_dir_name = collision_dirs[idx];
@@ -429,7 +428,7 @@ void Main_Window::collisionSolving(){
                 state.eval.num_of_current_ids = current_sample.targets.size();
 
                 //solution evaluation
-                if(state.eval.manual_evaluation){//manual
+                if(state.eval.manual_evaluation){//manual evaluation
                     //activate buttons
                     ui->button_accept_right->setStyleSheet("color: rgb(0, 0, 0)");
                     ui->button_accept_wrong->setStyleSheet("color: rgb(0, 0, 0)");
@@ -440,11 +439,11 @@ void Main_Window::collisionSolving(){
                         QCoreApplication::processEvents(QEventLoop::AllEvents,100);
                     }
                 }
-                else{//automatic
+                else{//automatic evaluation
                     state.eval.timer.restart();
                     if(final_positions.size()==current_sample.targets.size()){
                         bool success=true;
-
+                        //check if target mid circles are near saved result positions
                         for(size_t tgt_idx=0; tgt_idx<current_sample.targets.size(); tgt_idx++){
                             target_data& tgt = current_sample.targets[tgt_idx];
                             size_t nearest = 0;
@@ -458,7 +457,7 @@ void Main_Window::collisionSolving(){
                                     nearest=pos_idx;
                                 }
                             }
-                            if(nearest!=larva_ids[tgt_idx]){//Fail
+                            if(nearest!=larva_ids[tgt_idx] || best_dist>1.5*tgt.model[3].r){//Fail
                                 success=false;
                                 break;
                             }
@@ -497,6 +496,8 @@ void Main_Window::collisionSolving(){
                 ui->label_time->repaint();
             }
         }
+
+        STATUS("Results for dir "+subdir_name+": Correct identities: "+QString::number(state.eval.correct_ids)+" / "+QString::number(state.eval.sum_ids));
     }
     STATUS("Done!");
 }

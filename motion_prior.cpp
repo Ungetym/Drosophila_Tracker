@@ -150,6 +150,28 @@ float Motion_Prior::singleMotionModel(target_data* X, target_data* Y){
         return 0.0;
     }
 
+    //calculate overlap
+    Rect bounding_box = Basic_Calc::surroundingRect(X->bounding_box,Y->bounding_box);
+    Point2f offset = Point2f(bounding_box.x,bounding_box.y);
+
+    Mat model_x = Mat::zeros(bounding_box.height,bounding_box.width,CV_8UC1);
+    for(int j=0;j<7;j++){
+        circle(model_x,X->model[j].p-offset,X->model[j].r,Scalar(255,255,255),-1);
+    }
+    Mat model_y = Mat::zeros(bounding_box.height,bounding_box.width,CV_8UC1);
+    for(int j=0;j<7;j++){
+        circle(model_y,Y->model[j].p-offset,Y->model[j].r,Scalar(255,255,255),-1);
+    }
+
+    //correct overlap
+    double x_count = (double)(cv::sum(model_x)[0])/255.0;
+    double y_count = (double)(cv::sum(model_y)[0])/255.0;
+    Mat overlap_image = model_x&model_y;
+
+    double overlap = (double)(cv::sum(overlap_image)[0])/255.0;
+
+    result*=pow(min(overlap/x_count, overlap/y_count),5.0);
+
     return result;
 }
 
