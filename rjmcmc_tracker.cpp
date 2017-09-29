@@ -261,7 +261,7 @@ bool RJMCMC_Tracker::rjmcmcSampling(){
         //set proposal probabilities
         bool add = (targets_to_add.size()>0);
         bool del = (targets_to_delete.size()>0);
-        bool upd = (proposed_sample.is_active.size()>0);
+        bool upd = (proposed_sample.active.size()>0);
         p_A=0;
         p_D=0;
         p_U=0;
@@ -270,10 +270,9 @@ bool RJMCMC_Tracker::rjmcmcSampling(){
             if(del){p_D=15;}
             p_U=100-p_A-p_D;
         }
-        else{
+        else if(add){
             p_A=100;
         }
-        
         
         //choose proposal type
         int number = rand()%100;
@@ -340,31 +339,36 @@ bool RJMCMC_Tracker::rjmcmcSampling(){
             motion_proposer.update(&(proposed_sample.targets[idx_of_changed_target]));
         }
         
-        
-        //calculate acceptance rate
-        proposed_sample.probability = 1.0;
-        float a = acceptanceRate(&proposed_sample ,chosen_type,idx_of_changed_target);
-        
-        //        //test output
-        //        Mat test_1;
-        //        this->drawTargets(&last_sample,&test_1,2.0);
-        //        cv::imshow("Last",test_1);
-        //        Mat test;
-        //        this->drawTargets(&proposed_sample,&test,2.0);
-        //        cv::imshow("Proposed",test);
+        if(chosen_type!=-1){
 
-        //        cv::waitKey(0);
-        
+            //calculate acceptance rate
+            proposed_sample.probability = 1.0;
+            float a = acceptanceRate(&proposed_sample ,chosen_type,idx_of_changed_target);
 
-        //accept proposal with probability a, otherwise reject and re-add last sample
-        if(a>=1 || (a>state->sampling.a_threshold && (float)((rand()%100)+1.0)/100.0<a)){
-            number_of_accepted_samples++;
-            current_samples.push_back(proposed_sample);
-            targets_to_add=proposed_targets_to_add;
-            targets_to_delete=proposed_targets_to_delete;
-            estimated_state=proposed_estimated_state;
-            motion_prior.acceptProposal();
-            measurement_model.acceptProposal();
+            //        //test output
+            //        Mat test_1;
+            //        this->drawTargets(&last_sample,&test_1,2.0);
+            //        cv::imshow("Last",test_1);
+            //        Mat test;
+            //        this->drawTargets(&proposed_sample,&test,2.0);
+            //        cv::imshow("Proposed",test);
+
+            //        cv::waitKey(0);
+
+
+            //accept proposal with probability a, otherwise reject and re-add last sample
+            if(a>=1 || (a>state->sampling.a_threshold && (float)((rand()%100)+1.0)/100.0<a)){
+                number_of_accepted_samples++;
+                current_samples.push_back(proposed_sample);
+                targets_to_add=proposed_targets_to_add;
+                targets_to_delete=proposed_targets_to_delete;
+                estimated_state=proposed_estimated_state;
+                motion_prior.acceptProposal();
+                measurement_model.acceptProposal();
+            }
+            else{
+                current_samples.push_back(last_sample);
+            }
         }
         else{
             current_samples.push_back(last_sample);

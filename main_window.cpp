@@ -26,6 +26,46 @@ Main_Window::Main_Window(QWidget *parent) :
     ui->lineEdit_scaling->setText(QString::number(state.sampling.scaling_factor));
     ui->lineEdit_aThresh->setText(QString::number(state.sampling.a_threshold));
 
+    //load io.conf if available
+    ifstream config("io.conf");
+    if(config.is_open()){
+        string input_1, input_2, input_3;
+        config >> input_1;
+        state.io.coll_dir=QString::fromStdString(input_1);
+        config >> input_2;
+        state.io.output_dir=QString::fromStdString(input_2);
+        config >> input_3;
+        state.io.seq_dir=QString::fromStdString(input_3);
+
+        config.close();
+
+        QDir dir(state.io.coll_dir);
+        if(!dir.exists()){
+            state.io.coll_dir="";
+        }
+        else{
+            ui->lineEdit_colls->setText(state.io.coll_dir);
+        }
+
+        QDir dir_out(state.io.output_dir);
+        if(!dir_out.exists()){
+            state.io.output_dir="";
+        }
+        else{
+            ui->lineEdit_output->setText(state.io.output_dir);
+        }
+
+        QDir dir_seq(state.io.seq_dir);
+        if(!dir_seq.exists()){
+            state.io.seq_dir="";
+        }
+        else{
+            ui->lineEdit_seq->setText(state.io.seq_dir);
+        }
+
+        STATUS("Config loaded.");
+    }
+
     //connect logger and progressbar
     connect(this, &Main_Window::log, this, &Main_Window::setLogText);
     connect(&this->simple_tracker, &Simple_Tracker::log, this, &Main_Window::setLogText);
@@ -545,6 +585,15 @@ void Main_Window::selectDir(){
         ui->lineEdit_seq->setText(dir_name_q);
         STATUS("Input sequence dir set to"+dir_name_q);
     }
+
+    //save dirs to io.conf file
+    ofstream config("io.conf");
+    if(config.is_open()){
+        config<<state.io.coll_dir.toStdString()<<"\n";
+        config<<state.io.output_dir.toStdString()<<"\n";
+        config<<state.io.seq_dir.toStdString()<<"\n";
+    }
+    config.close();
 }
 
 void Main_Window::openDir(){
