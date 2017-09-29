@@ -4,7 +4,7 @@ contour_extractor::contour_extractor(){
 
 }
 
-void contour_extractor::initBackground(cv::Mat* image){
+void contour_extractor::initBackground(cv::Mat* image, float* threshold){
     cv::cvtColor(*image,current_background,CV_BGR2GRAY);
     std::vector<float> hist = this->calcHist(&current_background,8.0);
     int max_color = 0;
@@ -16,9 +16,30 @@ void contour_extractor::initBackground(cv::Mat* image){
         }
     }
     current_background = cv::Mat(image->rows,image->cols,CV_8U,cv::Scalar(max_color*8.0+4.0));
+
+    if(threshold!=NULL){//calculate threshold for binary thresholding according to larvae brightness
+        //detect approximate target areas via thresholding with a value of 20
+        cv::Mat tmp_img, tmp_copy;
+        cv::cvtColor(*image,tmp_img,CV_BGR2GRAY);
+        tmp_copy=tmp_img.clone();
+        cv::threshold(tmp_copy,tmp_copy,20,255,CV_THRESH_BINARY);
+        tmp_img=min(tmp_copy,tmp_img);
+
+        //count non black pixels
+        double pixel_count = 0;
+        double brightness_sum = 0.0;
+        uchar* data = tmp_img.data;
+        for(int i=0; i<tmp_img.rows*tmp_img.cols; i++){
+            if(data[i]!=0){
+                brightness_sum+=data[i];
+                pixel_count++;
+            }
+        }
+        *threshold = std::max(20.0f,(float)(0.5*brightness_sum/pixel_count));
+    }
 }
 
-std::vector<std::vector<cv::Point>> contour_extractor::extractContours(cv::Mat *image, cv::Mat *binary_image, int min_area, int max_area){
+std::vector<std::vector<cv::Point>> contour_extractor::extractContours(cv::Mat* image, cv::Mat* binary_image, int min_area, int max_area, float threshold){
     //detect targets via background subtraction
     cv::Mat tmpImg, tmpCopy;
     cv::cvtColor(*image,tmpImg,CV_BGR2GRAY);
@@ -27,7 +48,7 @@ std::vector<std::vector<cv::Point>> contour_extractor::extractContours(cv::Mat *
     //background subtraction and thresholding
     tmpImg-=current_background;
 
-    cv::threshold(tmpImg,tmpImg,20,255,CV_THRESH_BINARY);
+    cv::threshold(tmpImg,tmpImg,threshold,255,CV_THRESH_BINARY);
 
     //*binary_image=tmpImg.clone();
 

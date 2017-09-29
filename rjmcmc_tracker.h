@@ -27,10 +27,6 @@ private:
 
     System_State* state;
 
-    ////////////////////////////////  GENERAL VARIABLES  //////////////////////////////////
-    //saves number of processed frames
-    int frame_counter;
-
     //////////////////////////////// INITIAL ESTIMATION  //////////////////////////////////
     //contains current image, detected contours, detected contour boxes and binary image of filled contours
     observation_data Z_t;

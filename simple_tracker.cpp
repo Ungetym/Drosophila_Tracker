@@ -81,6 +81,7 @@ void Simple_Tracker::processDir(const QString& dir_name){
     contour_extractor ct_extractor;
     float min_area =500.0;
     float max_area =20000.0;
+    float threshold = 0.0;
 
     for(auto const& file : state->simple.file_list)
     {
@@ -93,11 +94,11 @@ void Simple_Tracker::processDir(const QString& dir_name){
         std::vector<vector<Point>> detected_contours;
         if(first_frame){
             //init background
-            ct_extractor.initBackground(&image);
+            ct_extractor.initBackground(&image, &threshold);
         }
 
         //detect contours
-        detected_contours = ct_extractor.extractContours(&image, &state->simple.current_binary, min_area, max_area);
+        detected_contours = ct_extractor.extractContours(&image, &state->simple.current_binary, min_area, max_area, threshold);
 
         for(size_t i=0;i<detected_contours.size();i++){
             vector<Point>& ct = detected_contours[i];

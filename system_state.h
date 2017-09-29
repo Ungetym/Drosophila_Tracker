@@ -52,7 +52,7 @@ struct RJMCMCState{
     int N = 1500; //final number of samples
     float fps = 10.0; //frame rate of sequences
     float scaling_factor = 1.0; //enables up- or downscaling of input sequences
-    float a_threshold = 0.75; //modify in order to reach ca. 25% accepted samples
+    float a_threshold = 0.2; //modify in order to reach ca. 25% accepted samples
 
     float current_rate_of_accepted = 0.0; //saves the rate of accepted samples
 
@@ -65,7 +65,7 @@ struct RJMCMCState{
     cv::Mat current_image; //saved for evaluation and head selection
     sample best_sample;
 
-    bool first_frame=true;
+    int frame = 0;
 };
 
 struct HeadSelectionState{
@@ -79,6 +79,7 @@ struct EvaluationState{
     bool sequence_evaluated = true;
     float num_of_frames;
     std::vector<QPixmap> current_sequence;
+    std::vector<QPixmap> current_sequence_binary;
     QString current_results_dir;
     QString current_sequence_dir;
     QString current_result_sequence_dir;
@@ -89,6 +90,11 @@ struct EvaluationState{
     float correct_ids = 0.0;
     float wrong_ids = 0.0;
     float sum_ids = 0.0;
+
+    bool save_gray = true;
+    bool save_binary = true;
+    bool copy_fails = false;
+    bool show_output = true;
 };
 
 class System_State : public QObject{

@@ -15,7 +15,6 @@ RJMCMC_Tracker::RJMCMC_Tracker(System_State* state) :
 }
 
 void RJMCMC_Tracker::init(){
-    frame_counter=0;
     this->current_samples.clear();
     this->last_samples.clear();
     state->heads.headpoints.clear();
@@ -28,8 +27,6 @@ sample RJMCMC_Tracker::track(cv::Mat *image_binary, vector<vector<Point>> contou
     
     //sample
     if(rjmcmcSampling()){
-        frame_counter++;
-
         //calculate and return result sample
         calculateBestSample();
 
@@ -58,7 +55,7 @@ void RJMCMC_Tracker::estimateSample(sample* X){
 
         //check if targets were active in last frame
         vector<bool> was_active;
-        for(int i=0; i<X->targets.size(); i++){
+        for(size_t i=0; i<X->targets.size(); i++){
             for(sample& smp : last_samples){
                 if(smp.is_active.size()>i){
                     if(smp.is_active[i]){
@@ -130,7 +127,7 @@ void RJMCMC_Tracker::estimateSample(sample* X){
     for(size_t i = 0; i < unmatched_contours.size(); i++){
         std::vector<circ> current_model = Larva_Model::calculateModel(&(unmatched_contours[i]));
         //try reading headfile
-        if(this->frame_counter==0){
+        if(state->sampling.frame==0){
             readHeads();
         }
 
@@ -139,7 +136,7 @@ void RJMCMC_Tracker::estimateSample(sample* X){
                 std::reverse(current_model.begin(), current_model.end());
             }
         }
-        else{//ask user to click on heads and save the result to headpoints
+        else if(state->eval.manual_evaluation){//ask user to click on heads and save the result to headpoints
             state->eval.time_needed+=state->eval.timer.elapsed();
 
             namedWindow("Click on head and press a Key", CV_WINDOW_NORMAL);
@@ -154,6 +151,7 @@ void RJMCMC_Tracker::estimateSample(sample* X){
             waitKey(0);
             destroyWindow("Click on head and press a Key");
             this->writeHead(current_model[6].p);
+
             state->heads.headpoints.push_back(current_model[6].p);
 
             state->eval.timer.restart();
@@ -175,7 +173,7 @@ bool RJMCMC_Tracker::rjmcmcSampling(){
     
     sample init_sample;
     
-    if(frame_counter==0){//initialization in first frame
+    if(state->sampling.frame==0){//initialization in first frame
         estimateSample(NULL);
 
         if(estimated_state.targets.size()==0){

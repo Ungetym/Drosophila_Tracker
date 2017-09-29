@@ -45,7 +45,9 @@ private:
     contour_extractor ct_extractor;
 
     //draws given sample onto image and saves the result
-    void drawTargets(sample* sample, Mat *image, float zoom, std::string const& image_output_path, size_t image_idx);
+    void drawTargets(sample* sample, Mat *image, Mat *image_binary, float zoom, std::string const& output_dir_path, std::string const& image_name, size_t image_idx);
+    //copies a dir
+    void copyDir(QString source, QString target);
 
 signals:
     void log(QString msg, int type);

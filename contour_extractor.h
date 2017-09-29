@@ -10,7 +10,7 @@ public:
     contour_extractor();
 
     // initializes background image for background subtraction
-    void initBackground(cv::Mat *image);
+    void initBackground(cv::Mat *image, float* threshold=NULL);
 
     ///
     /// \brief extractContours      calculates the binary image from the input image and extracts as well as filters the contours
@@ -20,7 +20,7 @@ public:
     /// \param max_area             pendant to min_area
     /// \return                     contours extracted from the binary image
     ///
-    std::vector<std::vector<cv::Point>> extractContours(cv::Mat *image, cv::Mat *binary_image, int min_area, int max_area);
+    std::vector<std::vector<cv::Point>> extractContours(cv::Mat *image, cv::Mat *binary_image, int min_area, int max_area, float threshold=20.0);
 
 private:
     cv::Mat current_background;

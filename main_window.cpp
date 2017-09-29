@@ -46,11 +46,18 @@ Main_Window::Main_Window(QWidget *parent) :
         else{ui->groupBox_manual->hide();}
         this->state.eval.manual_evaluation=clicked;}
     );
+    connect(ui->checkBox_gray_output, &QCheckBox::clicked,[this](bool clicked){state.eval.save_gray=clicked;});
+    connect(ui->checkBox_binary_output, &QCheckBox::clicked,[this](bool clicked){state.eval.save_binary=clicked;});
+    connect(ui->checkBox_copy_fails, &QCheckBox::clicked,[this](bool clicked){state.eval.copy_fails=clicked;});
+    connect(ui->checkBox_show_output, &QCheckBox::clicked,[this](bool clicked){state.eval.show_output=clicked;});
+
     connect(ui->button_accept_right, &QPushButton::clicked, this, &Main_Window::manualEvaluation);
     connect(ui->button_accept_wrong, &QPushButton::clicked, this, &Main_Window::manualEvaluation);
     connect(ui->button_delete, &QPushButton::clicked, this, &Main_Window::manualEvaluation);
     connect(ui->button_restart, &QPushButton::clicked, this, &Main_Window::manualEvaluation);
-    connect(ui->slider_frame, &QSlider::valueChanged,[this](int value){if((int)state.eval.current_sequence.size()>value){ui->image_left->setPixmap(state.eval.current_sequence[value]);}});
+    connect(ui->slider_frame, &QSlider::valueChanged,[this](int value){if((int)state.eval.current_sequence.size()>value){
+            ui->image_left->setPixmap(state.eval.current_sequence[value]);
+            ui->image_right->setPixmap(state.eval.current_sequence_binary[value]);}});
 
     //connect buttons
     connect(ui->button_apply,&QPushButton::clicked,this, &Main_Window::applyParameters);
@@ -88,6 +95,9 @@ void Main_Window::manualEvaluation(){
         }
         state.eval.wrong_ids+=state.eval.num_of_current_ids;
         state.eval.sum_ids+=state.eval.num_of_current_ids;
+        if(state.eval.copy_fails){//copy current sequence dir to FAIL dir
+            copyDir(state.eval.current_sequence_dir,state.io.coll_dir+"/FAILED");
+        }
     }
     else if(sender->objectName()=="button_delete"){
         QDir dir_1(state.eval.current_result_sequence_dir);
@@ -243,6 +253,7 @@ void Main_Window::collisionSolving(){
 
             //reset evaluation data
             state.eval.current_sequence.clear();
+            state.eval.current_sequence_binary.clear();
             state.eval.current_sequence_dir = state.io.coll_dir+"/"+subdir_name+"/"+collision_dir_name;
             state.heads.headfile_path = state.eval.current_sequence_dir.toStdString()+"/heads.txt";
             state.eval.current_idx=&idx;
@@ -312,7 +323,6 @@ void Main_Window::collisionSolving(){
             Mat image;
             Mat image_binary;
             float min_area = 0.0;
-            state.sampling.first_frame = true;
 
             rjmcmc_tracker.init();
 
@@ -325,10 +335,12 @@ void Main_Window::collisionSolving(){
             ui->slider_frame->repaint();
 
             size_t last_target_number = 0;
+            float threshold =0.0; //threshold for binary thresholding
 
             state.eval.time_needed += state.eval.timer.elapsed();
 
             for(int img_idx = 0; img_idx<image_file_names.size(); img_idx++){
+                state.sampling.frame=img_idx;
                 QString& image_name = image_file_names[img_idx];
                 string canonical_image_file_name = current_dir.canonicalPath().toStdString() + "/" + image_name.toStdString();
 
@@ -340,23 +352,22 @@ void Main_Window::collisionSolving(){
                 state.sampling.current_image = image;
 
                 vector<vector<Point>> detected_contours;
-                if(state.sampling.first_frame){
+                if(state.sampling.frame==0){
                     //init background
-                    ct_extractor.initBackground(&image);
+                    ct_extractor.initBackground(&image, &threshold);
 
                     //detect contours
-                    detected_contours = ct_extractor.extractContours(&image, &image_binary, 100.0, 5000.0);
+                    detected_contours = ct_extractor.extractContours(&image, &image_binary, 100.0, 5000.0, threshold);
 
                     //tracking
                     current_sample = rjmcmc_tracker.track(&image_binary, detected_contours);
 
                     //calculate area for contour filtering
                     min_area = state.sampling.avg_spine_length*state.sampling.avg_spine_length/10.0;
-                    state.sampling.first_frame = false;
                 }
                 else{
                     //detect contours
-                    detected_contours = ct_extractor.extractContours(&image, &image_binary, min_area, min_area*100.0);
+                    detected_contours = ct_extractor.extractContours(&image, &image_binary, min_area, min_area*100.0, threshold);
 
                     //track
                     current_sample=rjmcmc_tracker.track(&image_binary, detected_contours);
@@ -399,7 +410,7 @@ void Main_Window::collisionSolving(){
                     last_target_number = current_sample.targets.size();
                 }
                 //draw sample onto image and save to output dir
-                drawTargets(&current_sample,&image,1.0,(output_dir_name+image_name).toStdString(), img_idx);
+                drawTargets(&current_sample,&image,&image_binary,1.0,output_dir_name.toStdString(),image_name.toStdString(), img_idx);
 
                 //show rate of accepted samples
                 ui->label_current_rate->setText(QString::number(state.sampling.current_rate_of_accepted));
@@ -468,6 +479,11 @@ void Main_Window::collisionSolving(){
                             if(!dir.rename(dir.absolutePath(),state.eval.current_results_dir+"/FAIL_"+dir.dirName())){
                                 ERROR("Unable to rename sequence result dir.");
                             }
+                            //copy current sequence dir to FAIL dir
+                            if(state.eval.copy_fails){
+                                copyDir(state.eval.current_sequence_dir,state.io.coll_dir+"/FAILED");
+                            }
+
                             state.eval.wrong_ids+=state.eval.num_of_current_ids;
                         }
                         else{
@@ -481,6 +497,7 @@ void Main_Window::collisionSolving(){
                         if(!dir.rename(dir.absolutePath(),state.eval.current_results_dir+"/UNKNOWN_"+dir.dirName())){
                             ERROR("Unable to rename sequence result dir.");
                         }
+                        state.eval.sum_ids+=state.eval.num_of_current_ids;
                     }
                     state.eval.time_needed+=state.eval.timer.elapsed();
                 }
@@ -592,30 +609,94 @@ void Main_Window::setLogText(QString msg, int type){
     ui->logger->repaint();
 }
 
-void Main_Window::drawTargets(sample* sample, Mat* image, float zoom, std::string const& image_output_path, size_t image_idx){
-    Mat result = image->clone();
-    cv::resize(result,result,Size(0,0),zoom,zoom);
+void Main_Window::drawTargets(sample* sample, Mat* image, Mat* image_binary, float zoom, std::string const& output_dir_path, std::string const& image_name, size_t image_idx){
 
-    for(size_t j=0;j<sample->targets.size();j++){
-        if(sample->is_active[j]){
-            target_data target = sample->targets[j];
-            vector<circ> current_model = target.model;
-            for(int k=0;k<7;k++){
-                cv::circle(result,zoom*current_model[k].p,zoom*current_model[k].r,state.io.colors[j],1);
+    Mat result, result_binary;
+
+    if(state.eval.save_gray || state.eval.show_output){
+        result = image->clone();
+        cv::resize(result,result,Size(0,0),zoom,zoom);
+
+        for(size_t j=0;j<sample->targets.size();j++){
+            if(sample->is_active[j]){
+                target_data& target = sample->targets[j];
+                vector<circ>& current_model = target.model;
+                for(int k=0;k<7;k++){
+                    cv::circle(result,zoom*current_model[k].p,zoom*current_model[k].r,state.io.colors[j],1);
+                }
+                cv::circle(result, zoom*current_model[6].p, 2, cv::Scalar(0,10,220), CV_FILLED);
             }
-            cv::circle(result, zoom*current_model[6].p, 2, cv::Scalar(0,10,220), CV_FILLED);
         }
     }
-    state.eval.current_sequence.push_back(QPixmap::fromImage(QImage((unsigned char*) result.data, result.cols, result.rows, result.step, QImage::Format_RGB888)));
-    ui->image_left->setPixmap(state.eval.current_sequence.back());
-    ui->image_left->repaint();
-    if(image_idx!=0){
-        ui->slider_frame->setValue(ui->slider_frame->value()+1);
+
+    if(state.eval.save_binary || state.eval.show_output){
+        result_binary = image_binary->clone();
+        cv::cvtColor(result_binary,result_binary,CV_GRAY2BGR);
+        cv::resize(result_binary,result_binary,Size(0,0),zoom,zoom);
+
+        for(size_t j=0;j<sample->targets.size();j++){
+            if(sample->is_active[j]){
+                target_data& target = sample->targets[j];
+                vector<circ>& current_model = target.model;
+                for(int k=0;k<7;k++){
+                    cv::circle(result_binary,zoom*current_model[k].p,zoom*current_model[k].r,state.io.colors[j],1);
+                }
+                cv::circle(result_binary, zoom*current_model[6].p, 2, cv::Scalar(0,10,220), CV_FILLED);
+            }
+        }
     }
-    ui->slider_frame->repaint();
 
-    ui->progressBar_seq->setValue(ui->progressBar_seq->value()+(int)(100.0/state.eval.num_of_frames));
+    if(state.eval.show_output){
+        state.eval.current_sequence.push_back(QPixmap::fromImage(QImage((unsigned char*) result.data, result.cols, result.rows, result.step, QImage::Format_RGB888)));
+        state.eval.current_sequence_binary.push_back(QPixmap::fromImage(QImage((unsigned char*) result_binary.data, result_binary.cols, result_binary.rows, result_binary.step, QImage::Format_RGB888)));
+        ui->image_left->setPixmap(state.eval.current_sequence.back());
+        ui->image_left->repaint();
+        ui->image_right->setPixmap(state.eval.current_sequence_binary.back());
+        ui->image_right->repaint();
+
+        if(image_idx!=0){
+            ui->slider_frame->setValue(ui->slider_frame->value()+1);
+        }
+        ui->slider_frame->repaint();
+    }
+
+    if(state.eval.save_gray){
+        imwrite(output_dir_path+image_name, result);
+    }
+    if(state.eval.save_binary){
+        imwrite(output_dir_path+"bin_"+image_name, result_binary);
+    }
+
+
+    ui->progressBar_seq->setValue((int)(100.0*((float)state.sampling.frame+1.0)/state.eval.num_of_frames));
     ui->progressBar_seq->repaint();
+}
 
-    imwrite(image_output_path, result);
+void Main_Window::copyDir(QString source, QString target){
+    QDir source_dir(source);
+    QDir target_dir(target);
+    QString target_folder_name = target_dir.dirName();
+    if(!source_dir.exists()){
+        ERROR("Source sequence dir does not exist.");
+        return;
+    }
+    if(!target_dir.exists()){
+        target_dir.cd(state.io.coll_dir);
+        if(!target_dir.mkdir(target_folder_name) || !target_dir.cd(target_folder_name)){
+            ERROR("Target dir cannot be created.");
+            return;
+        }
+    }
+    if(!target_dir.mkdir(source_dir.dirName()) || !target_dir.cd(source_dir.dirName())){
+        ERROR("Target dir cannot be created.");
+        return;
+    }
+    //copy images
+    QStringList files = source_dir.entryList(QDir::NoDotAndDotDot|QDir::AllEntries);
+    for(QString& file_name : files){
+        if(!QFile::copy(source+"/"+file_name,target_dir.absolutePath()+"/"+file_name)){
+            ERROR("File cannot be copied.");
+            return;
+        }
+    }
 }

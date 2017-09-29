@@ -51,7 +51,7 @@ double Observation_Prob::observationProbability(sample* old_sample, sample* prop
                     current_best=overlap.second;
                 }
             }
-            if(best_idx==-1 || current_best<0.3){
+            if(best_idx==-1 || current_best<0.2){
                 unmatched_models.push_back(i);
                 matched_contour.push_back(-1);
             }
@@ -224,6 +224,7 @@ double Observation_Prob::observationProbability(sample* old_sample, sample* prop
             for(pair<int,float>& overlap : overlaps){
                 if(overlap.second>current_best){
                     best_idx = overlap.first;
+                    current_best = overlap.second;
                 }
             }
 
