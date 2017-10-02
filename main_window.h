@@ -35,6 +35,8 @@ private slots:
     void applyParameters();
     //starts collision solver for extracted collisions found in coll_dir
     void collisionSolving();
+    //calculate and show some statistics about the chosen collision dir
+    void showStatistics();
 
 private:
     Ui::Main_Window *ui;

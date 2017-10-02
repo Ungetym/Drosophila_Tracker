@@ -102,12 +102,67 @@ Main_Window::Main_Window(QWidget *parent) :
     //connect buttons
     connect(ui->button_apply,&QPushButton::clicked,this, &Main_Window::applyParameters);
     connect(ui->button_coll_extract,&QPushButton::clicked,&this->simple_tracker, &Simple_Tracker::track);
+    connect(ui->button_statistics,&QPushButton::clicked,this, &Main_Window::showStatistics);
     connect(ui->button_coll_solve,&QPushButton::clicked,this,&Main_Window::collisionSolving);
 }
 
 Main_Window::~Main_Window()
 {
     delete ui;
+}
+
+void Main_Window::showStatistics(){
+    //check if input dir exists
+    QDir dir(state.io.coll_dir);
+    if(!dir.exists() || state.io.coll_dir.size()==0){
+        ERROR("Collision dir does not exist");
+        return;
+    }
+    //check if input dir contains subdirs
+    QStringList subdirs = dir.entryList(QDir::NoDotAndDotDot|QDir::AllEntries);
+    if(subdirs.size()==0){
+        ERROR("Could not find sequences in collision dir "+state.io.seq_dir);
+        return;
+    }
+    //sort subdirs
+    QCollator col;
+    col.setNumericMode(true);
+    col.setCaseSensitivity(Qt::CaseInsensitive);
+    std::sort(subdirs.begin(), subdirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
+
+    //count number of subdirs according to sequence lengths
+    vector<int> dir_counter(200);
+    for(QString& subdir_name : subdirs){
+
+        //check if subdir contains collisions
+        QDir subdir(state.io.coll_dir+"/"+subdir_name);
+        QStringList collision_dirs = subdir.entryList(QDir::NoDotAndDotDot|QDir::AllEntries);
+        //sort collision dirs
+        std::sort(collision_dirs.begin(), collision_dirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
+
+        for(QString& coll_dir_name : collision_dirs){
+            subdir.cd(coll_dir_name);
+            QStringList files = subdir.entryList({"*.png","*.jpg","*.jpeg","*.tif","*.tiff"});
+            int num_of_entries = files.size();
+            if(num_of_entries>=200){
+                dir_counter[200]++;
+            }
+            else{
+                dir_counter[num_of_entries]++;
+            }
+            subdir.cdUp();
+        }
+    }
+
+    STATUS("Statistics:");
+    vector<int> combined;
+    for(int i=0; i<40; i++){
+        combined.push_back(0);
+        for(int j=0;j<5;j++){
+            combined.back()+=dir_counter[5*i+j];
+        }
+        STATUS(QString::number(5*i)+" to "+QString::number(5*i+4)+": "+QString::number(combined.back()));
+    }
 }
 
 void Main_Window::manualEvaluation(){
