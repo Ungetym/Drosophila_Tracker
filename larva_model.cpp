@@ -101,6 +101,8 @@ std::vector<circ> Larva_Model::calculateModel(std::vector<cv::Point> *contour, i
         accepted_rad=avg_rad;
     }
 
+    accepted_rad*=1.15;
+
     model[0].r=0.8*accepted_rad;
     for(int i=1;i<6;i++){
         model[i].r=accepted_rad;

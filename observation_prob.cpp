@@ -295,8 +295,8 @@ double Observation_Prob::observationProbability(sample* old_sample, sample* prop
     double result = 1.0;
     for(prob_factors& probs : proposed_single_probabilities){
         result*=10*exp(-20.0*probs.a_1);
-        result*=10*exp(-5.0*probs.a_2);
-        result*=10*exp(-3.0*probs.a_3.back());
+        //result*=10*exp(-5.0*probs.a_2);
+        result*=10*exp(-5.0*probs.a_3.back());
     }
 
     //handle unmatched models (very unlikely to happen)
@@ -332,9 +332,9 @@ void Observation_Prob::calculateOverlapRatios(int contour_idx, observation_data 
     for(pair<int,float>& correspondence : proposed_corresponding_models[contour_idx]){
         bounding_box = Basic_Calc::surroundingRect(bounding_box, proposed_sample->targets[correspondence.first].bounding_box);
     }
-    for(pair<int,float>& correspondence : proposed_overlapping_noncorresponding_models[contour_idx]){
-        bounding_box = Basic_Calc::surroundingRect(bounding_box, proposed_sample->targets[correspondence.first].bounding_box);
-    }
+//    for(pair<int,float>& correspondence : proposed_overlapping_noncorresponding_models[contour_idx]){
+//        bounding_box = Basic_Calc::surroundingRect(bounding_box, proposed_sample->targets[correspondence.first].bounding_box);
+//    }
     Point offset = Point(bounding_box.x,bounding_box.y);
     Point2f offset_f = Point2f(bounding_box.x,bounding_box.y);
 
@@ -374,14 +374,14 @@ void Observation_Prob::calculateOverlapRatios(int contour_idx, observation_data 
     }
     probs->a_3.push_back(a_3);
 
-    //draw non-corresponding larvae
-    Mat non_correspondences = Mat::zeros(bounding_box.height,bounding_box.width,CV_8UC1);
-    for(pair<int,float>& correspondence : proposed_overlapping_noncorresponding_models[contour_idx]){
-        vector<circ>& current_model = proposed_sample->targets[correspondence.first].model;
-        for(int j=0;j<7;j++){
-            circle(non_correspondences,(current_model[j].p-offset_f),current_model[j].r,Scalar(255,255,255),-1);
-        }
-    }
+//    //draw non-corresponding larvae
+//    Mat non_correspondences = Mat::zeros(bounding_box.height,bounding_box.width,CV_8UC1);
+//    for(pair<int,float>& correspondence : proposed_overlapping_noncorresponding_models[contour_idx]){
+//        vector<circ>& current_model = proposed_sample->targets[correspondence.first].model;
+//        for(int j=0;j<7;j++){
+//            circle(non_correspondences,(current_model[j].p-offset_f),current_model[j].r,Scalar(255,255,255),-1);
+//        }
+//    }
 
     //calculate ratios
 
@@ -389,9 +389,9 @@ void Observation_Prob::calculateOverlapRatios(int contour_idx, observation_data 
     Mat overlap_1 = single_observation-correspondences;
     probs->a_1 = (double)(cv::sum(overlap_1)[0])/(state->sampling.avg_larva_area*255.0);
 
-    //wrong overlap
-    non_correspondences &= single_observation;
-    probs->a_2 = (double)(cv::sum(non_correspondences)[0])/(state->sampling.avg_larva_area*255.0);
+//    //wrong overlap
+//    non_correspondences &= single_observation;
+//    probs->a_2 = (double)(cv::sum(non_correspondences)[0])/(state->sampling.avg_larva_area*255.0);
 
 }
 
