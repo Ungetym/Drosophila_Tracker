@@ -37,6 +37,8 @@ private slots:
     void collisionSolving();
     //calculate and show some statistics about the chosen collision dir
     void showStatistics();
+    //start multiple collision solvers according to parameter file
+    void multipleSolvingTests();
 
 private:
     Ui::Main_Window *ui;

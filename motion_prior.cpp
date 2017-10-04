@@ -128,12 +128,12 @@ float Motion_Prior::singleMotionModel(target_data* X, target_data* Y){
     //calculate probability of head movement using LUT
     angle = CV_PI/180.0*Basic_Calc::calcAngleClockwise(Point2f(0,0),md_y[6].p-md_y[5].p,Point2f(1,0));
     Point2f w = Basic_Calc::rotate(md_x[6].p-md_y[5].p,angle);
-//    if(abs(v.x)>abs(v.y)){//approx back or forward movement
-//        w.x*=0.8;
-//    }
-//    else{
-//        w.y*=0.5;
-//    }
+    if(abs(v.x)>abs(v.y)){//approx back or forward movement
+        w.x*=0.8;
+    }
+    else{
+        w.y*=0.5;
+    }
 
     i=abs(w.x/0.05);
     if(i<0){
@@ -170,9 +170,9 @@ float Motion_Prior::singleMotionModel(target_data* X, target_data* Y){
 
     double overlap = (double)(cv::sum(overlap_image)[0])/255.0;
 
-    result=pow(min(overlap/x_count, overlap/y_count),5.0);
+    result*=exp(-5.0*min(overlap/x_count, overlap/y_count));
 
-    return result*0.1;
+    return result;
 }
 
 float Motion_Prior::calculateInteractionPotentialRatio(sample* proposed_sample, int target_number ,int proposal_type, std::vector<sample> *current_samples){

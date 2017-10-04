@@ -104,6 +104,7 @@ Main_Window::Main_Window(QWidget *parent) :
     connect(ui->button_coll_extract,&QPushButton::clicked,&this->simple_tracker, &Simple_Tracker::track);
     connect(ui->button_statistics,&QPushButton::clicked,this, &Main_Window::showStatistics);
     connect(ui->button_coll_solve,&QPushButton::clicked,this,&Main_Window::collisionSolving);
+    connect(ui->button_start_multiple,&QPushButton::clicked,this,&Main_Window::multipleSolvingTests);
 }
 
 Main_Window::~Main_Window()
@@ -131,7 +132,9 @@ void Main_Window::showStatistics(){
     std::sort(subdirs.begin(), subdirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
 
     //count number of subdirs according to sequence lengths
-    vector<int> dir_counter(200);
+    vector<int> dir_counter(102);
+    float num_of_frames = 0.0;
+    float num_of_seqs = 0.0;
     for(QString& subdir_name : subdirs){
 
         //check if subdir contains collisions
@@ -141,11 +144,13 @@ void Main_Window::showStatistics(){
         std::sort(collision_dirs.begin(), collision_dirs.end(), [&](const QString& a, const QString& b) {return col.compare(a, b) < 0;});
 
         for(QString& coll_dir_name : collision_dirs){
+            num_of_seqs++;
             subdir.cd(coll_dir_name);
             QStringList files = subdir.entryList({"*.png","*.jpg","*.jpeg","*.tif","*.tiff"});
             int num_of_entries = files.size();
-            if(num_of_entries>=200){
-                dir_counter[200]++;
+            num_of_frames+=num_of_entries;
+            if(num_of_entries>=100){
+                dir_counter[101]++;
             }
             else{
                 dir_counter[num_of_entries]++;
@@ -156,13 +161,16 @@ void Main_Window::showStatistics(){
 
     STATUS("Statistics:");
     vector<int> combined;
-    for(int i=0; i<40; i++){
+    for(int i=0; i<20; i++){
         combined.push_back(0);
         for(int j=0;j<5;j++){
-            combined.back()+=dir_counter[5*i+j];
+            combined.back()+=dir_counter[5*i+j+1];
         }
-        STATUS(QString::number(5*i)+" to "+QString::number(5*i+4)+": "+QString::number(combined.back()));
+        STATUS(QString::number(5*i+1)+" to "+QString::number(5*i+5)+": "+QString::number(combined.back()));
     }
+    STATUS(">100 : "+QString::number(dir_counter.back()));
+
+    STATUS("Average frames per sequence: "+QString::number(num_of_frames/num_of_seqs));
 }
 
 void Main_Window::manualEvaluation(){
@@ -174,7 +182,7 @@ void Main_Window::manualEvaluation(){
         if(file.is_open()){
             for(size_t i=0; i<current_sample.targets.size(); i++){
                 target_data& tgt = current_sample.targets[i];
-                file<<tgt.model[3].p.x<<" "<<tgt.model[3].p.y<<"\n";
+                file<<1.0/state.sampling.scaling_factor*tgt.model[3].p.x<<" "<<1.0/state.sampling.scaling_factor*tgt.model[3].p.y<<"\n";
             }
         }
         else{
@@ -293,6 +301,57 @@ void Main_Window::applyParameters(){
 
 }
 
+void Main_Window::multipleSolvingTests(){
+    //ask user for parameter file
+    QString file_name_q = QFileDialog::getOpenFileName(Q_NULLPTR, tr("Load Parameter File"),"./",tr("Parameter File (*.txt)"));
+    ifstream file(file_name_q.toStdString());
+    if(file.is_open()){
+        int num_of_tests;
+        file>>num_of_tests;
+
+        string test_name;
+        int N,M,B;
+        float scaling, fps, a_threshold;
+        QString output_dir_original = state.io.output_dir;
+
+        for(int i=0; i<num_of_tests; i++){
+            //read test name and parameters
+            file>>test_name;
+            file>>N;
+            file>>B;
+            file>>M;
+            file>>fps;
+            file>>scaling;
+            file>>a_threshold;
+            state.sampling.N=N;
+            state.sampling.B=B;
+            state.sampling.M=M;
+            state.sampling.fps=fps;
+            state.sampling.scaling_factor=scaling;
+            state.sampling.a_threshold=a_threshold;
+            STATUS("Parameters loaded.");
+
+            //change output dir according to test name and create dir if does not exist
+            state.io.output_dir=output_dir_original+"/"+QString::fromStdString(test_name);
+            QDir out_dir(state.io.output_dir);
+            if(!out_dir.cd(QString::fromStdString(test_name))){
+                out_dir.cdUp();
+                out_dir.mkdir(QString::fromStdString(test_name));
+            }
+
+            //start collision solving
+            collisionSolving();
+        }
+
+        applyParameters();
+        state.io.output_dir = output_dir_original;
+    }
+    else{
+        ERROR("File could not be read.");
+        return;
+    }
+}
+
 void Main_Window::collisionSolving(){
     STATUS("Start collision solving.");
     state.eval.time_needed = 0.0;
@@ -370,7 +429,7 @@ void Main_Window::collisionSolving(){
                 if(file_initial.is_open()){
                     Point2f p;
                     while(file_initial>>p.x && file_initial>>p.y){
-                        initial_positions.push_back(p);
+                        initial_positions.push_back(state.sampling.scaling_factor*p);
                     }
                 }
                 file_initial.close();
@@ -378,7 +437,7 @@ void Main_Window::collisionSolving(){
                 if(file_final.is_open()){
                     Point2f p;
                     while(file_final>>p.x && file_final>>p.y){
-                        final_positions.push_back(p);
+                        final_positions.push_back(state.sampling.scaling_factor*p);
                     }
                 }
                 file_final.close();
@@ -479,7 +538,7 @@ void Main_Window::collisionSolving(){
                         if(file.is_open()){
                             for(size_t i=last_target_number; i<current_sample.targets.size(); i++){
                                 target_data& tgt = current_sample.targets[i];
-                                file<<tgt.model[3].p.x<<" "<<tgt.model[3].p.y<<"\n";
+                                file<<1.0/state.sampling.scaling_factor*tgt.model[3].p.x<<" "<<1.0/state.sampling.scaling_factor*tgt.model[3].p.y<<"\n";
                             }
                         }
                         else{
@@ -531,7 +590,7 @@ void Main_Window::collisionSolving(){
             }
             else{
 
-                state.eval.num_of_current_ids = current_sample.targets.size();
+                state.eval.num_of_current_ids = state.heads.headpoints.size();
 
                 //solution evaluation
                 if(state.eval.manual_evaluation){//manual evaluation
@@ -610,6 +669,22 @@ void Main_Window::collisionSolving(){
         }
 
         STATUS("Results for dir "+subdir_name+": Correct identities: "+QString::number(state.eval.correct_ids)+" / "+QString::number(state.eval.sum_ids));
+        //write results to file
+        ofstream result(state.io.output_dir.toStdString()+"/results.txt", std::ofstream::out | std::ofstream::app);
+        if(result.is_open()){
+            result<<state.eval.correct_ids<<" / "<<state.eval.sum_ids<<"        "<<state.eval.correct_ids/state.eval.sum_ids<<"     "<<100.0*(1.0-state.eval.correct_ids/state.eval.sum_ids)<<"\n";
+        }
+    }
+    ofstream result(state.io.output_dir.toStdString()+"/results.txt", std::ofstream::out | std::ofstream::app);
+    if(result.is_open()){
+        result<<"Time:      "<<(float)(state.eval.time_needed)/1000.0<<" s      "<<(float)(state.eval.time_needed)/60000.0<<" min\n";
+        //write parameters
+        result<<" N :"<<state.sampling.N<<"\n";
+        result<<" B :"<<state.sampling.B<<"\n";
+        result<<" M :"<<state.sampling.M<<"\n";
+        result<<" fps :"<<state.sampling.fps<<"\n";
+        result<<" scaling :"<<state.sampling.scaling_factor<<"\n";
+        result<<" a_threshold :"<<state.sampling.a_threshold<<"\n";
     }
     STATUS("Done!");
 }

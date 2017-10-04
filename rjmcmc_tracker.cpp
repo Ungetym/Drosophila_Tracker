@@ -478,7 +478,7 @@ void RJMCMC_Tracker::writeHead(Point2f headpoint){
     ofstream headfile;
     headfile.open(state->heads.headfile_path, std::ofstream::out | std::ofstream::app);
     if(headfile.is_open()){
-        headfile<<" "<<headpoint.x<<" "<<headpoint.y<<"\n";
+        headfile<<" "<<1.0/state->sampling.scaling_factor*headpoint.x<<" "<<1.0/state->sampling.scaling_factor*headpoint.y<<"\n";
     }
 }
 
@@ -495,7 +495,7 @@ void RJMCMC_Tracker::readHeads(){
         }
         headfile.close();
         for(int i=0;i<(int)point_coords.size()/2;i++){
-            state->heads.headpoints.push_back(Point2f(point_coords[2*i],point_coords[2*i+1]));
+            state->heads.headpoints.push_back(state->sampling.scaling_factor*Point2f(point_coords[2*i],point_coords[2*i+1]));
         }
     }
 }
