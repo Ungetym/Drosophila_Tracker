@@ -390,6 +390,8 @@ void Main_Window::collisionSolving(){
         state.eval.correct_ids = 0.0;
         state.eval.wrong_ids = 0.0;
         state.eval.sum_ids = 0.0;
+        state.eval.avg_spine = 0.0;
+        state.eval.avg_area = 0.0;
 
         state.eval.current_results_dir=state.io.output_dir+"/"+subdir_name;
         //check if subdir contains collisions
@@ -511,7 +513,7 @@ void Main_Window::collisionSolving(){
                     ct_extractor.initBackground(&image, &threshold);
 
                     //detect contours
-                    detected_contours = ct_extractor.extractContours(&image, &image_binary, 100.0, 5000.0, threshold);
+                    detected_contours = ct_extractor.extractContours(&image, &image_binary, state.sampling.scaling_factor*100.0, state.sampling.scaling_factor*5000.0, threshold);
 
                     //tracking
                     current_sample = rjmcmc_tracker.track(&image_binary, detected_contours);
@@ -589,7 +591,8 @@ void Main_Window::collisionSolving(){
                 ui->button_delete->setStyleSheet("color: rgb(125, 125, 125)");
             }
             else{
-
+                state.eval.avg_spine += state.sampling.avg_spine_length/(float)collision_dirs.size();
+                state.eval.avg_area += state.sampling.avg_larva_area/(float)collision_dirs.size();
                 state.eval.num_of_current_ids = state.heads.headpoints.size();
 
                 //solution evaluation
@@ -679,12 +682,14 @@ void Main_Window::collisionSolving(){
     if(result.is_open()){
         result<<"Time:      "<<(float)(state.eval.time_needed)/1000.0<<" s      "<<(float)(state.eval.time_needed)/60000.0<<" min\n";
         //write parameters
-        result<<" N :"<<state.sampling.N<<"\n";
-        result<<" B :"<<state.sampling.B<<"\n";
-        result<<" M :"<<state.sampling.M<<"\n";
-        result<<" fps :"<<state.sampling.fps<<"\n";
-        result<<" scaling :"<<state.sampling.scaling_factor<<"\n";
-        result<<" a_threshold :"<<state.sampling.a_threshold<<"\n";
+        result<<"N :"<<state.sampling.N<<"\n";
+        result<<"B :"<<state.sampling.B<<"\n";
+        result<<"M :"<<state.sampling.M<<"\n";
+        result<<"fps :"<<state.sampling.fps<<"\n";
+        result<<"scaling :"<<state.sampling.scaling_factor<<"\n";
+        result<<"a_threshold :"<<state.sampling.a_threshold<<"\n";
+        result<<"Avg. spine length :"<<state.eval.avg_spine<<"\n";
+        result<<"Avg. larva area :"<<state.eval.avg_area<<"\n";
     }
     STATUS("Done!");
 }

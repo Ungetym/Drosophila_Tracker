@@ -125,7 +125,7 @@ void RJMCMC_Tracker::estimateSample(sample* X){
     
     //compute model for every detected target not associated to any larva in X
     for(size_t i = 0; i < unmatched_contours.size(); i++){
-        std::vector<circ> current_model = Larva_Model::calculateModel(&(unmatched_contours[i]));
+        std::vector<circ> current_model = Larva_Model::calculateModel(&(unmatched_contours[i]),max(1,(int)(state->sampling.scaling_factor*2.0)), max(1,(int)(state->sampling.scaling_factor*10.0)), max(1,(int)(state->sampling.scaling_factor*4.0)));
         //try reading headfile
         if(state->sampling.frame==0){
             readHeads();

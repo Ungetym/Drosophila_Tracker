@@ -90,6 +90,8 @@ struct EvaluationState{
     float correct_ids = 0.0;
     float wrong_ids = 0.0;
     float sum_ids = 0.0;
+    float avg_spine = 0.0;
+    float avg_area = 0.0;
 
     bool save_gray = true;
     bool save_binary = true;
