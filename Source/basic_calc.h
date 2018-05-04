@@ -2,7 +2,7 @@
 #define BASIC_CALC_H
 
 #pragma once
-#include "opencv3/include/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 
 struct circ{
     cv::Point2f p;

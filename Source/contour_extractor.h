@@ -1,7 +1,7 @@
 #ifndef CONTOUR_EXTRACTOR_H
 #define CONTOUR_EXTRACTOR_H
 
-#include "opencv3/include/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 #include "basic_calc.h"
 
 class contour_extractor

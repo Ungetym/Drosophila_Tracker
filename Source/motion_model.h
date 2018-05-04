@@ -2,7 +2,7 @@
 #define MOTION_MODEL_H
 
 #pragma once
-#include "opencv3/include/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 #include "rjmcmc_target.h"
 #include "system_state.h"
 

@@ -6,7 +6,7 @@
 #define RJMCMC_TARGET_H
 
 #pragma once
-#include "opencv3/include/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 #include "basic_calc.h"
 
 using namespace std;

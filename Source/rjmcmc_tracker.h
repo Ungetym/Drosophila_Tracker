@@ -1,7 +1,7 @@
 #ifndef RJMCMC_TRACKER_H
 #define RJMCMC_TRACKER_H
 
-#include "opencv3/include/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 #include "observation_prob.h"
 #include "motion_prior.h"
 #include "motion_model.h"

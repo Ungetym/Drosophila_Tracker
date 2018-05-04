@@ -54,12 +54,11 @@ HEADERS += \
 FORMS += \
         main_window.ui
 
-INCLUDEPATH +=/home/tmichels/local_home/opt/
-INCLUDEPATH +=/home/tmichels/local_home/opt/opencv3/include
-INCLUDEPATH +=/home/tmichels/local_home/opt/opencv3/include/opencv
-INCLUDEPATH +=/home/tmichels/local_home/opt/opencv3/include/opencv2
+INCLUDEPATH +=/home/tmichels/local_home/opt/opencv/include
+INCLUDEPATH +=/home/tmichels/local_home/opt/opencv/include/opencv
+INCLUDEPATH +=/home/tmichels/local_home/opt/opencv/include/opencv2
 
-LIBS += -L/home/tmichels/local_home/opt/opencv3/lib \
+LIBS += -L/home/tmichels/local_home/opt/opencv/lib \
 -lopencv_highgui \
 -lopencv_imgcodecs \
 -lopencv_core \
