@@ -1,6 +1,6 @@
 # Drosophila Tracker
 
-Repository for publication: 
-Tim Michels, Dimitri Berh and Xiaoyi Jiang
-"An RJMCMC-Based Method for Tracking and Resolving Collisions of Drosophila Larvae" 
+Repository for publication:   
+Tim Michels, Dimitri Berh and Xiaoyi Jiang  
+"An RJMCMC-Based Method for Tracking and Resolving Collisions of Drosophila Larvae"  
 IEEE/ACM Transactions on Computational Biology and Bioinformatics. DOI: 10.1109/TCBB.2017.2779141
